@@ -3,5 +3,6 @@ gradio_imageslider
 gradio==4.29.0
 matplotlib
 opencv-python
+tqdm
 torch==2.2.2
 torchvision=0.17.2

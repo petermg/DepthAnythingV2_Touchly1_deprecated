@@ -6,6 +6,7 @@ import numpy as np
 import os
 import torch
 
+from tqdm import tqdm
 from depth_anything_v2.dpt import DepthAnythingV2
 
 
@@ -20,7 +21,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--pred-only', dest='pred_only', action='store_true', help='only display the prediction')
     parser.add_argument('--grayscale', dest='grayscale', action='store_true', help='do not apply colorful palette')
-    parser.set_defaults("--precision", type=str, default='fp32', choices= ['fp32', 'fp16'])
+    parser.add_argument("--precision", type=str, default='fp32', choices= ['fp32', 'fp16'])
     
     args = parser.parse_args()
     
@@ -37,8 +38,13 @@ if __name__ == '__main__':
     depth_anything.load_state_dict(torch.load(f'checkpoints/depth_anything_v2_{args.encoder}.pth', map_location='cpu'))
     depth_anything = depth_anything.to(DEVICE).eval()
 
-    if args.precision == 'fp16':
+    if args.precision == 'fp16' and DEVICE == 'cuda':
         depth_anything = depth_anything.half()
+    else:
+        print('FP16 precision is only available on CUDA devices. Using FP32 instead.')
+        args.precision = 'fp32'
+        depth_anything = depth_anything.float()
+
     
     if os.path.isfile(args.video_path):
         if args.video_path.endswith('txt'):
@@ -77,7 +83,9 @@ if __name__ == '__main__':
         output_path = os.path.join(args.outdir, os.path.splitext(os.path.basename(filename))[0] + '.mp4')
         out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), frame_rate, (output_width, frame_height))
         
-        while raw_video.isOpened():
+        totalFrameCount = int(raw_video.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        for _ in tqdm(range(totalFrameCount)):
             ret, raw_frame = raw_video.read()
             if not ret:
                 break
