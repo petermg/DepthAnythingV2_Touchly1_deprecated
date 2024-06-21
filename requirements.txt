@@ -1,6 +1,7 @@
+--extra-index-url https://download.pytorch.org/whl/cu121
 gradio_imageslider
 gradio==4.29.0
 matplotlib
 opencv-python
-torch
-torchvision
+torch==2.2.2
+torchvision=0.17.2

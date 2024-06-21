@@ -20,6 +20,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--pred-only', dest='pred_only', action='store_true', help='only display the prediction')
     parser.add_argument('--grayscale', dest='grayscale', action='store_true', help='do not apply colorful palette')
+    parser.set_defaults("--precision", type=str, default='fp32', choices= ['fp32', 'fp16'])
     
     args = parser.parse_args()
     
@@ -35,6 +36,9 @@ if __name__ == '__main__':
     depth_anything = DepthAnythingV2(**model_configs[args.encoder])
     depth_anything.load_state_dict(torch.load(f'checkpoints/depth_anything_v2_{args.encoder}.pth', map_location='cpu'))
     depth_anything = depth_anything.to(DEVICE).eval()
+
+    if args.precision == 'fp16':
+        depth_anything = depth_anything.half()
     
     if os.path.isfile(args.video_path):
         if args.video_path.endswith('txt'):
@@ -53,10 +57,25 @@ if __name__ == '__main__':
     for k, filename in enumerate(filenames):
         print(f'Progress {k+1}/{len(filenames)}: {filename}')
         
+        
         raw_video = cv2.VideoCapture(filename)
         frame_width, frame_height = int(raw_video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(raw_video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         frame_rate = int(raw_video.get(cv2.CAP_PROP_FPS))
         
+        mean_tensor = (
+            torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).to(DEVICE)
+        )
+        std_tensor = (
+            torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).to(DEVICE)
+        )
+
+        aspectRatio = frame_width / frame_height
+        # Fix height at 518 and adjust width
+        newHeight = 518
+        newWidth = round(newHeight * aspectRatio / 14) * 14
+        # Ensure newWidth is a multiple of 14
+        newWidth = (newWidth // 14) * 14
+
         if args.pred_only: 
             output_width = frame_width
         else: 
@@ -70,10 +89,12 @@ if __name__ == '__main__':
             if not ret:
                 break
             
-            depth = depth_anything.infer_image(raw_frame, args.input_size)
-            
+            # Comes back with a Torch float 16 / 32 based on precision desired precision
+            depth = depth_anything.infer_image(raw_frame, args.input_size, precision=args.precision, newHeight=newHeight, newWidth=newWidth)
             depth = (depth - depth.min()) / (depth.max() - depth.min()) * 255.0
-            depth = depth.astype(np.uint8)
+
+            # Preferably don't convert to uint8 here but only on the final output, to do.
+            depth = depth.cpu().numpy().astype(np.uint8)
             
             if args.grayscale:
                 depth = np.repeat(depth[..., np.newaxis], 3, axis=-1)
