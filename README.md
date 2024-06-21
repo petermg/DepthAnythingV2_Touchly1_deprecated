@@ -1,3 +1,11 @@
+# MODIFICATIONS:
+- Replaced old utils that used numpy with torch stuff for faster inference
+- Keep the tensor for as long as possible instead of doing numpy transforms
+- Add `--precision` and fp16 for faster inference
+- Add TQDM For a progress bar in order to know figure out some Iteration metrics
+- Performance increase of about 150% for CPU.
+- Currently only modified `--run_video.py`
+
 <div align="center">
 <h1>Depth Anything V2</h1>
 
