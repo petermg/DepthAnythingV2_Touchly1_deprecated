@@ -61,13 +61,6 @@ if __name__ == '__main__':
         raw_video = cv2.VideoCapture(filename)
         frame_width, frame_height = int(raw_video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(raw_video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         frame_rate = int(raw_video.get(cv2.CAP_PROP_FPS))
-        
-        mean_tensor = (
-            torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).to(DEVICE)
-        )
-        std_tensor = (
-            torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).to(DEVICE)
-        )
 
         aspectRatio = frame_width / frame_height
         # Fix height at 518 and adjust width

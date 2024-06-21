@@ -174,6 +174,12 @@ class DepthAnythingV2(nn.Module):
         self.depth_head = DPTHead(self.pretrained.embed_dim, features, use_bn, out_channels=out_channels, use_clstoken=use_clstoken)
 
         self.device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
+        self.mean_tensor = (
+            torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).to(self.DEVICE)
+        )
+        self.std_tensor = (
+            torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).to(self.DEVICE)
+        )
     
     def forward(self, x):
         patch_h, patch_w = x.shape[-2] // 14, x.shape[-1] // 14
