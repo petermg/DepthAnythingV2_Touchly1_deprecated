@@ -2,7 +2,7 @@ This is a fork of https://github.com/NevermindNilas/Faster-Depth-Anything-V2 to 
 
 ### This fork has been modified to output 16bit precision depth map png files instead of 8bit. This allows for better 3D model creation without a "stair-stepping" look to the model.
 
-### This fork also outputs video files in the "Touchly1" format, which has the depth map on the bottom and the original video on the top, vertiacally stacking the output. Just append "_Touchly1" to the name of the video file to play it back in the Touchly player in 6DoF 3D!
+### This fork also outputs video files in the "Touchly1" format, which has the depth map on the bottom and the original video on the top, vertically stacking the output. Just append "_Touchly1" to the name of the video file to play it back in the Touchly player in 6DoF 3D!
 
 You can process video files by running ["run_video.py"](#running-script-on-videos)
 
