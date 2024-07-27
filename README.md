@@ -1,3 +1,4 @@
+This is a fork of https://github.com/NevermindNilas/Faster-Depth-Anything-V2
 # MODIFICATIONS:
 - Replaced old utils that used numpy with torch stuff for faster inference
 - Keep the tensor for as long as possible instead of doing numpy transforms
