@@ -5,7 +5,6 @@ import matplotlib
 import numpy as np
 import os
 import torch
-from PIL import Image
 from depth_anything_v2.dpt import DepthAnythingV2
 
 
@@ -18,6 +17,7 @@ if __name__ == '__main__':
     parser.add_argument('--encoder', type=str, default='vitl', choices=['vits', 'vitb', 'vitl', 'vitg'])
     parser.add_argument('--pred-only', dest='pred_only', action='store_true', help='only display the prediction')
     parser.add_argument('--color', dest='color', action='store_true', help='apply colorful palette')
+    parser.add_argument("--precision", type=str, default='fp16', choices= ['fp32', 'fp16'])
     
     args = parser.parse_args()
     
@@ -33,6 +33,12 @@ if __name__ == '__main__':
     depth_anything = DepthAnythingV2(**model_configs[args.encoder])
     depth_anything.load_state_dict(torch.load(f'checkpoints/depth_anything_v2_{args.encoder}.pth', map_location='cpu'))
     depth_anything = depth_anything.to(DEVICE).eval()
+
+    if args.precision == 'fp16':
+        depth_anything = depth_anything.half()
+    else:
+        args.precision = 'fp32'
+        depth_anything = depth_anything.float()
     
     if os.path.isfile(args.img_path):
         if args.img_path.endswith('txt'):
@@ -51,21 +57,33 @@ if __name__ == '__main__':
         print(f'Progress {k+1}/{len(filenames)}: {filename}')
         
         raw_image = cv2.imread(filename)
-        raw_image16 = (raw_image.astype(np.uint16) * 255)
-        
-        depth = depth_anything.infer_image(raw_image, args.input_size)
+
+        ### -------------------
+        # --input_size is irrelevant and should rather be derived automatically from the input image
+        # it's easier that way and less error-prone from the user's perspective
+        # The size must be a multiple of 14 hence why we will use the same logic as in the run_video.py script
+        ### -------------------
+
+        raw_image_height = raw_image.shape[0]
+        raw_image_width = raw_image.shape[1]
+        aspect_ratio = raw_image_width / raw_image_height
+
+        new_iamge_height = round(raw_image_height / 14) * 14
+        new_image_width = round(raw_image_width * aspect_ratio / 14) * 14
+
+        print(f'Aspect ratio: {aspect_ratio}, New Height and Width: {new_iamge_height}x{new_image_width}')
+
+        depth = depth_anything.infer_image(raw_image, precision=args.precision, newHeight=new_iamge_height, newWidth=new_image_width)
         
         depth = (depth - depth.min()) / (depth.max() - depth.min()) * 65536.0
         depth = depth.cpu().numpy().astype(np.uint16)
-        #depth = depth.astype(np.uint16)
         
         if args.color:
-            depth = (cmap(depth)[:, :, :3] * 65536)[:, :, ::-1].astype(np.uint16)
+            depth = (cmap(depth)[:, :, :3] * 65536)[:, :, ::-1]
         else:
             depth = np.repeat(depth[..., np.newaxis], 3, axis=-1)
-
             
-        topimage = raw_image16
+        topimage = raw_image.astype(np.uint16) * 255
         bottomimage = depth
         
         if args.pred_only:
